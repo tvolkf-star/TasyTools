@@ -33,7 +33,15 @@ LOOK UP and LOOK SIDE slightly bend the selected route. LOOP travels START → F
 - **30 fps**: output frame rate.
 - **faststart**: places MP4 playback metadata at the beginning for friendlier web playback.
 
-Published demos will state **source image dimensions, movement preset, duration, output preset, resulting MP4 dimensions and file size**. This makes each demo a measurable example rather than an unlabeled animation.
+## Real LOOP example
+
+![Still Motion LOOP preview](../../assets/still-motion/loop-preview.webp)
+
+**1200×1200 MP4 · LOOP · 15 s · 30 fps · 3.93 MB**
+
+[Open the original MP4 example](../../assets/still-motion/loop-example.mp4)
+
+The animated WebP above is a lightweight README preview derived from the MP4. The MP4 is the actual Still Motion output.
 
 | | |
 |---|---|
