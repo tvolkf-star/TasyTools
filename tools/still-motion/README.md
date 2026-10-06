@@ -35,11 +35,11 @@ LOOK UP and LOOK SIDE slightly bend the selected route. LOOP travels START → F
 
 ## Real LOOP example
 
-![Still Motion LOOP preview](../../assets/still-motion/loop-preview.webp)
+![Still Motion LOOP preview](https://github.com/tvolkf-star/TasyTools/releases/download/still-motion-v1.0/loop-preview.webp)
 
 **1200×1200 MP4 · LOOP · 15 s · 30 fps · 3.93 MB**
 
-[Open the original MP4 example](../../assets/still-motion/loop-example.mp4)
+[Open the original MP4 example](https://github.com/tvolkf-star/TasyTools/releases/download/still-motion-v1.0/loop-example.mp4)
 
 The animated WebP above is a lightweight README preview derived from the MP4. The MP4 is the actual Still Motion output.
 
