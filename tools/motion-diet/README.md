@@ -29,7 +29,15 @@
 
 The **480 px** value is a maximum for the longest side, not a forced resolution; smaller sources are not enlarged. FPS controls temporal sampling and therefore strongly affects output weight. WebP quality controls lossy Animated WebP encoding. GIF has no equivalent continuous quality slider here, so the presets use palette size instead.
 
-Published examples will include the complete measurement line: **source resolution · duration · source bytes → preset · output format · output resolution · output bytes**. A reduction factor is shown only when both matching files are available for measurement.
+## Real LIGHT output
+
+![Motion Diet LIGHT animated WebP](../../assets/motion-diet/light-example.webp)
+
+**480×480 Animated WebP · 2.12 MB · LIGHT preset**
+
+This is a real output produced by Motion Diet. The matching source video is not included, so no compression ratio is claimed for this example.
+
+Motion Diet is especially useful for large exports from 3D, rendering and generative tools when the result is needed as a website, forum, preview or quick demonstration asset. If the source video is already well optimized, the resulting file may be only slightly smaller, the same size, or occasionally larger. In that case, there is no reason to convert it.
 
 ## FFmpeg lookup
 
