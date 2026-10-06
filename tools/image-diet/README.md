@@ -37,7 +37,7 @@ See [`../../assets/image-diet`](../../assets/image-diet/) for all original/resul
 3. Drag PNG/JPG/JPEG files into the window, or select files/folders.
 4. Choose the destination folder.
 5. Optionally enable deletion of originals after successful processing.
-6. Press **PROCESS**.
+6. Press **ОБРАБОТАТЬ**.
 
 ## Technical details
 
