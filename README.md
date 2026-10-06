@@ -106,12 +106,12 @@ The source image is not modified.
 
 FFmpeg is **not bundled** with TasyTools. It remains a separate project under its own licensing terms. See [THIRD_PARTY.md](THIRD_PARTY.md).
 
+Project: [tasy.pro](https://tasy.pro/)
+
+*Documentation and GitHub packaging prepared with ChatGPT, GPT-5.6 Sol, Instant mode.*
+
 ## License
 
 TasyTools is released under the [MIT License](LICENSE).
 
 Copyright © 2026 **Tasy Volkova**
-
-*Documentation and GitHub packaging prepared with ChatGPT, GPT-5.6 Sol, Instant mode.*
-
-Project: [tasy.pro](https://tasy.pro/)
