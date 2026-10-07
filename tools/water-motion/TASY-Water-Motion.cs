@@ -16,6 +16,7 @@ namespace TasyWaterMotion
         NumericUpDown seconds = new NumericUpDown();
         Timer timer = new Timer();
         Button open = new Button(), clear = new Button(), play = new Button(), export = new Button();
+        Label hint = new Label();
         bool painting, erasing;
         Point last;
         DateTime started;
@@ -27,7 +28,7 @@ namespace TasyWaterMotion
             Width = 1100; Height = 820; StartPosition = FormStartPosition.CenterScreen;
             BackColor = Color.FromArgb(30,30,30); ForeColor = Color.White;
 
-            var bar = new FlowLayoutPanel { Dock=DockStyle.Top, Height=58, Padding=new Padding(8), AutoSize=false };
+            var bar = new FlowLayoutPanel { Dock=DockStyle.Top, Height=62, Padding=new Padding(8), AutoSize=false, WrapContents=false, AutoScroll=true };
             open.Text="OPEN IMAGE"; clear.Text="CLEAR MASK"; play.Text="PREVIEW"; export.Text="EXPORT MP4";
             foreach(var b in new[]{open,clear,play,export}) { b.AutoSize=true; b.Height=34; bar.Controls.Add(b); }
 
@@ -35,9 +36,11 @@ namespace TasyWaterMotion
             preset.Items.AddRange(new object[]{"CALM","RIPPLE","WIND"}); preset.SelectedIndex=0; bar.Controls.Add(preset);
             strength.Minimum=1; strength.Maximum=18; strength.Value=5; strength.Width=130; bar.Controls.Add(strength);
             seconds.Minimum=2; seconds.Maximum=20; seconds.Value=5; seconds.Width=55; bar.Controls.Add(seconds);
+            hint.Text="  PAINT WATER: LEFT MOUSE   ERASE: RIGHT MOUSE"; hint.AutoSize=true; hint.Padding=new Padding(0,9,0,0); bar.Controls.Add(hint);
 
             canvas.Dock=DockStyle.Fill; canvas.BackColor=Color.FromArgb(18,18,18);
-            canvas.SizeMode=PictureBoxSizeMode.Zoom;
+            canvas.SizeMode=PictureBoxSizeMode.Zoom; canvas.Cursor=Cursors.Cross;
+            AllowDrop=true; canvas.AllowDrop=true;
             Controls.Add(canvas); Controls.Add(bar);
 
             open.Click += (s,e)=>OpenImage();
@@ -45,6 +48,8 @@ namespace TasyWaterMotion
             play.Click += (s,e)=>TogglePreview();
             export.Click += (s,e)=>ExportMp4();
             canvas.MouseDown += CanvasDown; canvas.MouseMove += CanvasMove; canvas.MouseUp += (s,e)=>painting=false;
+            DragEnter += FileDragEnter; DragDrop += FileDragDrop;
+            canvas.DragEnter += FileDragEnter; canvas.DragDrop += FileDragDrop;
             timer.Interval=33; timer.Tick += (s,e)=> {
                 double d=(double)seconds.Value;
                 double t=((DateTime.Now-started).TotalSeconds%d)/d;
@@ -55,13 +60,51 @@ namespace TasyWaterMotion
         void OpenImage()
         {
             using(var d=new OpenFileDialog { Filter="Images|*.png;*.jpg;*.jpeg;*.bmp;*.webp" })
-            if(d.ShowDialog()==DialogResult.OK)
             {
-                using(var tmp=new Bitmap(d.FileName)) source=new Bitmap(tmp);
+                if(d.ShowDialog()==DialogResult.OK) LoadImage(d.FileName);
+            }
+        }
+
+        bool IsImageFile(string path)
+        {
+            string ext=Path.GetExtension(path).ToLowerInvariant();
+            return ext==".png" || ext==".jpg" || ext==".jpeg" || ext==".bmp" || ext==".webp";
+        }
+
+        void LoadImage(string path)
+        {
+            try
+            {
+                if(!IsImageFile(path)) throw new Exception("Unsupported image format.");
+                if(preview != null) { preview.Dispose(); preview=null; }
+                if(source != null) { source.Dispose(); source=null; }
+                if(mask != null) { mask.Dispose(); mask=null; }
+                using(var tmp=new Bitmap(path)) source=new Bitmap(tmp);
                 mask=new Bitmap(source.Width,source.Height,PixelFormat.Format24bppRgb);
                 using(var g=Graphics.FromImage(mask)) g.Clear(Color.Black);
                 DrawFrame(0,true);
             }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message,"Open image");
+            }
+        }
+
+        void FileDragEnter(object sender, DragEventArgs e)
+        {
+            if(e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files=(string[])e.Data.GetData(DataFormats.FileDrop);
+                if(files.Length>0 && IsImageFile(files[0])) e.Effect=DragDropEffects.Copy;
+                else e.Effect=DragDropEffects.None;
+            }
+            else e.Effect=DragDropEffects.None;
+        }
+
+        void FileDragDrop(object sender, DragEventArgs e)
+        {
+            string[] files=(string[])e.Data.GetData(DataFormats.FileDrop);
+            if(files!=null && files.Length>0) LoadImage(files[0]);
         }
 
         Rectangle ImageRect()
@@ -95,7 +138,11 @@ namespace TasyWaterMotion
         {
             using(var g=Graphics.FromImage(mask))
             using(var pen=new Pen(erasing?Color.Black:Color.White,Brush){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round})
+            {
                 g.DrawLine(pen,a,b);
+                using(var brush=new SolidBrush(erasing?Color.Black:Color.White))
+                    g.FillEllipse(brush,b.X-Brush/2,b.Y-Brush/2,Brush,Brush);
+            }
             DrawFrame(0,true);
         }
 
