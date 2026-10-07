@@ -153,7 +153,7 @@ namespace TasyWaterMotion
 
         void DrawFrame(double t,bool showMask)
         {
-            preview?.Dispose(); preview=Render(t);
+            if(preview != null) preview.Dispose(); preview=Render(t);
             if(showMask)
             {
                 using(var g=Graphics.FromImage(preview))
@@ -179,8 +179,12 @@ namespace TasyWaterMotion
         {
             if(source==null) return;
             timer.Stop(); play.Text="PREVIEW";
+            string outputFile;
             using(var d=new SaveFileDialog { Filter="MP4 video|*.mp4", FileName="water-motion.mp4" })
-            if(d.ShowDialog()!=DialogResult.OK) return;
+            {
+                if(d.ShowDialog()!=DialogResult.OK) return;
+                outputFile=d.FileName;
+            }
             string temp=Path.Combine(Path.GetTempPath(),"TasyWater_"+Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(temp);
             try
@@ -194,10 +198,10 @@ namespace TasyWaterMotion
                     Text = "TASY Water Motion · rendering " + (i + 1) + "/" + frames;
                     Application.DoEvents();
                 }
-                string args = "-y -framerate " + fps + " -i \"" + Path.Combine(temp, "frame_%05d.png") + "\" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \"" + d.FileName + "\"";
+                string args = "-y -framerate " + fps + " -i \"" + Path.Combine(temp, "frame_%05d.png") + "\" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \"" + outputFile + "\"";
                 var psi=new ProcessStartInfo(FindFFmpeg(),args){UseShellExecute=false,CreateNoWindow=true};
                 using(var p=Process.Start(psi)){p.WaitForExit(); if(p.ExitCode!=0) throw new Exception("FFmpeg returned "+p.ExitCode);}
-                MessageBox.Show("Done:\n"+d.FileName,"TASY Water Motion");
+                MessageBox.Show("Done:\n"+outputFile,"TASY Water Motion");
             }
             catch(Exception ex){MessageBox.Show(ex.Message,"Export error");}
             finally
