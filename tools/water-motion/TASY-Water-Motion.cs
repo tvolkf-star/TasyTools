@@ -15,6 +15,8 @@ namespace TasyWaterMotion
         ComboBox preset = new ComboBox();
         NumericUpDown seconds = new NumericUpDown();
         NumericUpDown brushSize = new NumericUpDown();
+        NumericUpDown cameraAmount = new NumericUpDown();
+        CheckBox cameraForward = new CheckBox();
         Timer timer = new Timer();
         Button open = new Button(), clear = new Button(), play = new Button(), export = new Button();
         Label hint = new Label();
@@ -38,6 +40,8 @@ namespace TasyWaterMotion
             strength.Minimum=1; strength.Maximum=18; strength.Value=5; strength.Width=130; bar.Controls.Add(strength);
             seconds.Minimum=2; seconds.Maximum=20; seconds.Value=5; seconds.Width=55; bar.Controls.Add(seconds);
             brushSize.Minimum=10; brushSize.Maximum=500; brushSize.Value=120; brushSize.Increment=10; brushSize.Width=58; bar.Controls.Add(brushSize);
+            cameraForward.Text="CAMERA IN"; cameraForward.AutoSize=true; cameraForward.Padding=new Padding(4,8,0,0); bar.Controls.Add(cameraForward);
+            cameraAmount.Minimum=1; cameraAmount.Maximum=12; cameraAmount.Value=4; cameraAmount.Width=45; bar.Controls.Add(cameraAmount);
             hint.Text=" BRUSH px   PAINT: LEFT   ERASE: RIGHT"; hint.AutoSize=true; hint.Padding=new Padding(0,9,0,0); bar.Controls.Add(hint);
 
             canvas.Dock=DockStyle.Fill; canvas.BackColor=Color.FromArgb(18,18,18);
@@ -167,7 +171,7 @@ namespace TasyWaterMotion
             return s*scale*(0.58*a+0.28*b+0.14*c);
         }
 
-        Bitmap Render(double t)
+        Bitmap RenderWater(double t)
         {
             var dst=new Bitmap(source.Width,source.Height,PixelFormat.Format24bppRgb);
             using(var src24=new Bitmap(source.Width,source.Height,PixelFormat.Format24bppRgb))
@@ -206,9 +210,41 @@ namespace TasyWaterMotion
             return dst;
         }
 
+        Bitmap RenderFrame(double t)
+        {
+            Bitmap water=RenderWater(t);
+            Bitmap frame=ApplyCamera(water,t);
+            water.Dispose();
+            return frame;
+        }
+
+        Bitmap ApplyCamera(Bitmap input,double t)
+        {
+            if(!cameraForward.Checked) return new Bitmap(input);
+            double amount=(double)cameraAmount.Value/100.0;
+            // Smooth forward-and-back motion keeps the exported loop seamless.
+            double phase=0.5-0.5*Math.Cos(2*Math.PI*t);
+            double scale=1.0+amount*phase;
+            int cropW=Math.Max(2,(int)Math.Round(input.Width/scale));
+            int cropH=Math.Max(2,(int)Math.Round(input.Height/scale));
+            int x=(input.Width-cropW)/2;
+            int y=(input.Height-cropH)/2;
+            var dst=new Bitmap(input.Width,input.Height,PixelFormat.Format24bppRgb);
+            using(var g=Graphics.FromImage(dst))
+            {
+                g.InterpolationMode=System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode=System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.DrawImage(input,new Rectangle(0,0,dst.Width,dst.Height),new Rectangle(x,y,cropW,cropH),GraphicsUnit.Pixel);
+            }
+            return dst;
+        }
+
         void DrawFrame(double t,bool showMask)
         {
-            if(preview != null) preview.Dispose(); preview=Render(t);
+            if(preview != null) preview.Dispose();
+            Bitmap water=RenderWater(t);
+            preview=ApplyCamera(water,t);
+            water.Dispose();
             if(showMask)
             {
                 using(var g=Graphics.FromImage(preview))
@@ -248,15 +284,25 @@ namespace TasyWaterMotion
                 for(int i=0;i<frames;i++)
                 {
                     // i/frames intentionally excludes t=1: playback wraps to frame 0 without a duplicate pause frame.
-                    using(var f=Render((double)i/frames))
+                    using(var f=RenderFrame((double)i/frames))
                         f.Save(Path.Combine(temp, "frame_" + i.ToString("00000") + ".png"), ImageFormat.Png);
                     Text = "TASY Water Motion · rendering " + (i + 1) + "/" + frames;
                     Application.DoEvents();
                 }
+                string ffmpeg=FindFFmpeg();
                 string args = "-y -framerate " + fps + " -i \"" + Path.Combine(temp, "frame_%05d.png") + "\" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \"" + outputFile + "\"";
-                var psi=new ProcessStartInfo(FindFFmpeg(),args){UseShellExecute=false,CreateNoWindow=true};
-                using(var p=Process.Start(psi)){p.WaitForExit(); if(p.ExitCode!=0) throw new Exception("FFmpeg returned "+p.ExitCode);}
-                MessageBox.Show("Done:\n"+outputFile,"TASY Water Motion");
+                var psi=new ProcessStartInfo(ffmpeg,args);
+                psi.UseShellExecute=false; psi.CreateNoWindow=true; psi.RedirectStandardError=true;
+                string ffmpegError="";
+                using(var p=Process.Start(psi))
+                {
+                    ffmpegError=p.StandardError.ReadToEnd();
+                    p.WaitForExit();
+                    if(p.ExitCode!=0) throw new Exception("FFmpeg export failed ("+p.ExitCode+").\n\n"+ffmpegError);
+                }
+                if(!File.Exists(outputFile) || new FileInfo(outputFile).Length==0)
+                    throw new Exception("FFmpeg finished, but no MP4 was created.\n\nFFmpeg: "+ffmpeg+"\nOutput: "+outputFile+"\n\n"+ffmpegError);
+                MessageBox.Show("Done:\n"+outputFile+"\n\n"+new FileInfo(outputFile).Length/1024/1024.0+" MB","TASY Water Motion");
             }
             catch(Exception ex){MessageBox.Show(ex.Message,"Export error");}
             finally
