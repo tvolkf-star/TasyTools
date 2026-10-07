@@ -190,11 +190,11 @@ namespace TasyWaterMotion
                 {
                     // i/frames intentionally excludes t=1: playback wraps to frame 0 without a duplicate pause frame.
                     using(var f=Render((double)i/frames))
-                        f.Save(Path.Combine(temp,$"frame_{i:00000}.png"),ImageFormat.Png);
-                    Text=$"TASY Water Motion · rendering {i+1}/{frames}";
+                        f.Save(Path.Combine(temp, "frame_" + i.ToString("00000") + ".png"), ImageFormat.Png);
+                    Text = "TASY Water Motion · rendering " + (i + 1) + "/" + frames;
                     Application.DoEvents();
                 }
-                string args=$"-y -framerate {fps} -i \"{Path.Combine(temp,"frame_%05d.png")}\" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \"{d.FileName}\"";
+                string args = "-y -framerate " + fps + " -i \"" + Path.Combine(temp, "frame_%05d.png") + "\" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \"" + d.FileName + "\"";
                 var psi=new ProcessStartInfo(FindFFmpeg(),args){UseShellExecute=false,CreateNoWindow=true};
                 using(var p=Process.Start(psi)){p.WaitForExit(); if(p.ExitCode!=0) throw new Exception("FFmpeg returned "+p.ExitCode);}
                 MessageBox.Show("Done:\n"+d.FileName,"TASY Water Motion");
