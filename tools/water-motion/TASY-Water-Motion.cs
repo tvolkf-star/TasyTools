@@ -138,13 +138,13 @@ namespace TasyWaterMotion
         }
         void PaintMask(Point a, Point b)
         {
+            int brushPixels=(int)brushSize.Value;
             using(var g=Graphics.FromImage(mask))
-            int brush=(int)brushSize.Value;
-            using(var pen=new Pen(erasing?Color.Black:Color.White,brush){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round})
+            using(var pen=new Pen(erasing?Color.Black:Color.White,brushPixels){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round})
             {
                 g.DrawLine(pen,a,b);
-                using(var brush=new SolidBrush(erasing?Color.Black:Color.White))
-                    g.FillEllipse(brush,b.X-brush/2,b.Y-brush/2,brush,brush);
+                using(var dotBrush=new SolidBrush(erasing?Color.Black:Color.White))
+                    g.FillEllipse(dotBrush,b.X-brushPixels/2,b.Y-brushPixels/2,brushPixels,brushPixels);
             }
             DrawFrame(0,true);
         }
