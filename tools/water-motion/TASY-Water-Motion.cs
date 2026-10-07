@@ -14,13 +14,14 @@ namespace TasyWaterMotion
         TrackBar strength = new TrackBar();
         ComboBox preset = new ComboBox();
         NumericUpDown seconds = new NumericUpDown();
+        NumericUpDown brushSize = new NumericUpDown();
         Timer timer = new Timer();
         Button open = new Button(), clear = new Button(), play = new Button(), export = new Button();
         Label hint = new Label();
         bool painting, erasing;
         Point last;
         DateTime started;
-        const int Brush = 34;
+        
 
         public MainForm()
         {
@@ -36,7 +37,8 @@ namespace TasyWaterMotion
             preset.Items.AddRange(new object[]{"CALM","RIPPLE","WIND"}); preset.SelectedIndex=0; bar.Controls.Add(preset);
             strength.Minimum=1; strength.Maximum=18; strength.Value=5; strength.Width=130; bar.Controls.Add(strength);
             seconds.Minimum=2; seconds.Maximum=20; seconds.Value=5; seconds.Width=55; bar.Controls.Add(seconds);
-            hint.Text="  PAINT WATER: LEFT MOUSE   ERASE: RIGHT MOUSE"; hint.AutoSize=true; hint.Padding=new Padding(0,9,0,0); bar.Controls.Add(hint);
+            brushSize.Minimum=10; brushSize.Maximum=500; brushSize.Value=120; brushSize.Increment=10; brushSize.Width=58; bar.Controls.Add(brushSize);
+            hint.Text=" BRUSH px   PAINT: LEFT   ERASE: RIGHT"; hint.AutoSize=true; hint.Padding=new Padding(0,9,0,0); bar.Controls.Add(hint);
 
             canvas.Dock=DockStyle.Fill; canvas.BackColor=Color.FromArgb(18,18,18);
             canvas.SizeMode=PictureBoxSizeMode.Zoom; canvas.Cursor=Cursors.Cross;
@@ -137,11 +139,12 @@ namespace TasyWaterMotion
         void PaintMask(Point a, Point b)
         {
             using(var g=Graphics.FromImage(mask))
-            using(var pen=new Pen(erasing?Color.Black:Color.White,Brush){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round})
+            int brush=(int)brushSize.Value;
+            using(var pen=new Pen(erasing?Color.Black:Color.White,brush){StartCap=System.Drawing.Drawing2D.LineCap.Round,EndCap=System.Drawing.Drawing2D.LineCap.Round})
             {
                 g.DrawLine(pen,a,b);
                 using(var brush=new SolidBrush(erasing?Color.Black:Color.White))
-                    g.FillEllipse(brush,b.X-Brush/2,b.Y-Brush/2,Brush,Brush);
+                    g.FillEllipse(brush,b.X-brush/2,b.Y-brush/2,brush,brush);
             }
             DrawFrame(0,true);
         }
@@ -186,10 +189,15 @@ namespace TasyWaterMotion
                         {
                             double m=mp[x*3]/255.0;
                             if(m<0.002){ dp[x*3]=sp[x*3]; dp[x*3+1]=sp[x*3+1]; dp[x*3+2]=sp[x*3+2]; continue; }
-                            double local=row + strength.Value*0.22*Math.Sin(2*Math.PI*t + x*0.024 + y*0.018);
+                            double perspective=0.25 + 1.35*((double)y/Math.Max(1,source.Height-1));
+                            double local=(row + strength.Value*0.22*Math.Sin(2*Math.PI*t + x*0.024 + y*0.018))*perspective;
+                            double vertical=strength.Value*0.38*perspective*Math.Sin(2*Math.PI*t + x*0.017 - y*0.011 + 0.7);
                             int sx=(int)Math.Round(x+local*m);
+                            int sy=(int)Math.Round(y+vertical*m);
                             sx=Math.Max(0,Math.Min(source.Width-1,sx));
-                            dp[x*3]=sp[sx*3]; dp[x*3+1]=sp[sx*3+1]; dp[x*3+2]=sp[sx*3+2];
+                            sy=Math.Max(0,Math.Min(source.Height-1,sy));
+                            byte* sample=(byte*)sd.Scan0+sy*sd.Stride;
+                            dp[x*3]=sample[sx*3]; dp[x*3+1]=sample[sx*3+1]; dp[x*3+2]=sample[sx*3+2];
                         }
                     }
                 }
